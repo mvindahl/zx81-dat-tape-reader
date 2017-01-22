@@ -1,4 +1,4 @@
-# Scan wav images of old tapes to detect bonary data
+# Scan wav images of old tapes to detect binary data
 Utility project for helping in the retrieval of old data tapes in ZX81 format. Takes input file in
 .wav format. Saves file of binary data. Designed to be resistant towards the tapes having decayed over time.
 
