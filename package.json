@@ -1,0 +1,19 @@
+{
+  "name": "zx81-dat-tape-reader",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "Martin Vindahl Olsen",
+  "license": "ISC",
+  "dependencies": {
+    "almost-equal": "^1.1.0",
+    "electron": "^1.4.15",
+    "goertzel": "^3.0.1",
+    "node-wav": "0.0.2",
+    "progress": "^1.1.8"
+  }
+}

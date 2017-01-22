@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <style type="text/css" media="screen">
+        #Container {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+        }
+
+        #Canvas { 
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 140px;
+            left: 0;
+        }
+
+        #editor { 
+            position: absolute;
+            top: 140px;
+            right: 0;
+            bottom: 20px;
+            left: 0;
+        }
+
+        #ExportData { 
+            position: absolute;
+            bottom: 0px;
+            height: 20px;
+            right: 0;
+        }
+
+    </style>
+  </head>
+  <body>
+    <div id="Container">
+        <canvas id="Canvas" height="140"></canvas>
+        <div id="editor"></div>
+        <button type="button" id="ExportData" onclick="exportData()">Save raw data</button>
+    </div>
+  </body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.6/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.3/FileSaver.min.js"></script>
+    <script>
+        window.editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai"); 
+        editor.getSession().setMode("ace/mode/properties"); // I guess
+    </script>
+    <script>
+    var renderer = require('electron').ipcRenderer;
+
+    var samples;
+    var samplesLength;
+    var fileName;
+
+    renderer.on('fileName', (event, _fileName) => {
+      fileName = _fileName;
+      document.title = fileName;
+    })
+
+    renderer.on('samples', (event, _samples) => {
+      samples = _samples;
+      samplesLength = Object.keys(samples).length;
+      repaintCanvas();
+    })
+
+    renderer.on('runLengthsForEdit', (event, runLengthsForEdit) => {
+
+        editor.setValue(runLengthsForEdit, -1);
+        repaintCanvas();
+
+        editor.getSession().on('change', function(e) {
+            repaintCanvas();
+        });
+
+        editor.getSession().selection.on('changeCursor', function(e) {
+            repaintCanvas();
+        });
+
+        editor.getSession().selection.on('changeSelection', function(e) {
+            repaintCanvas();
+        });
+
+    })
+
+    var canvasOffset = 0;
+    var editorLineRegex = /^(.) # (\d*):(\d*)$/;
+    var canvasWidth;
+
+    function repaintCanvas() {
+        var canvas = document.getElementById("Canvas");
+        canvasWidth = window.innerWidth;
+        canvas.width = canvasWidth;
+        var ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        //var editorLines = editor.getValue().split('\n');
+        var cursorRow = editor.getSelection().getCursor().row;
+        var currentLineMatch = editorLineRegex.exec(editor.session.getLine(cursorRow));
+        if (currentLineMatch) {
+            var currentLineOffset = parseInt(currentLineMatch[2]);
+            var currentLineLength = parseInt(currentLineMatch[3]);
+            canvasOffset = Math.floor(currentLineOffset + currentLineLength/2 - canvasWidth/2);
+            canvasOffset = Math.max(canvasOffset, 0);
+            if (samples) {
+                canvasOffset = Math.min(canvasOffset, samplesLength - canvasWidth);
+            }
+        }
+
+        // draw runs
+
+
+        var row = cursorRow;
+        while (row >= 0) {
+            var inBounds = paintRun(ctx, editor.session.getLine(row), row === cursorRow)
+            if (!inBounds) {
+                break;
+            }
+            row--;
+        }
+        var row = cursorRow + 1;
+        while (row < editor.session.getLength()) { // ?
+            var inBounds = paintRun(ctx, editor.session.getLine(row), row === cursorRow)
+            if (!inBounds) {
+                break;
+            }
+            row++;
+        }
+
+
+        // draw wave samples
+
+        if (samples) {
+            for (var idx = 0; idx < canvasWidth; idx++) {
+                ctx.moveTo(idx,50);
+                ctx.lineTo(idx,50 + 50*samples[idx + canvasOffset]);
+            }
+            ctx.stroke()
+        }
+
+        ctx.font="10px Lucida Console";
+        ctx.fillStyle = "#aaa";
+        ctx.fillRect(0, 0, 80, 12);
+        ctx.fillStyle = "white";
+        ctx.fillText("offset: " + canvasOffset, 4, 10);
+    }
+
+    function paintRun(ctx, lineText, isCursorRow) { // returns true if painted, false if out of bounds
+        var match = editorLineRegex.exec(lineText);
+
+        if (match) {
+            var bitValue = match[1]; 
+            var offset = parseInt(match[2]); 
+            var length = parseInt(match[3]);
+
+            if (isCursorRow) {
+                ctx.fillStyle = "blue"; 
+            } else {
+                ctx.fillStyle = "#444"; 
+            }
+
+            // if we are off the drawing bounds, then return false
+            if (offset - canvasOffset + length < 0) {
+                //console.log('too far left');
+                return false;
+            }            
+            if (offset - canvasOffset > canvasWidth) {
+                //console.log('too far right');
+                return false;
+            }
+
+            ctx.fillRect(offset - canvasOffset, 100, length, 20);
+
+            ctx.font="20px Georgia";
+            ctx.fillStyle = "black"; 
+
+            ctx.fillText(bitValue, Math.floor(offset - canvasOffset + length/2) - 5, 136);
+
+        }
+        return true;
+
+    }
+
+    function exportData() {
+        var editorLines = editor.getValue().split('\n');
+
+        var bits = [];
+        for (idx = 0; idx < editorLines.length; idx++) {
+            var editorLine = editorLines[idx];
+            var match = editorLineRegex.exec(editorLine);
+            if (match) {
+                var bitValue = match[1]; 
+                if (bitValue === '0' || bitValue === '1') {
+                    bits.push(bitValue);
+                }
+            }
+        }
+        var bitString = bits.join('');
+        var byteNumbers = [];
+        while (bitString.length > 0) {
+            var bitsForByte = bitString.slice(0, 8);
+            var value = 0;
+            for (var pos = 0; pos < 8; pos++) {
+                value *= 2;
+                if (bitsForByte.charAt(pos) === '1') {
+                    value++;
+                }
+            }
+            byteNumbers.push(value);
+            bitString = bitString.slice(8);
+        }
+
+        var byteArray = new Uint8Array(byteNumbers);
+        var blob = new Blob([ byteArray ], {type: "application/octet-stream"});
+        var outputFileName = fileName + ".raw";
+        saveAs(blob, outputFileName);
+    }
+
+  </script>
+</html>
