@@ -75,7 +75,7 @@ for (var i = 0; i < 150; i++) {
 
 // adjust for the fact that adjacent samples register as being part of run as well, i.e. the run lengths
 // measured will be longer than the length of the pulse
-var runLengthPad = 10; // experimental value
+var runLengthPad = 15; // experimental value
 
 var zeroBitRunLength = Math.floor(4*samplesPerPulse) + runLengthPad;
 var oneBitRunLength = Math.floor(9*samplesPerPulse) + runLengthPad;
@@ -87,7 +87,7 @@ console.log('silence periods', silenceRunLength);
 
 var runLengthsForEdit = runs.map(function(run) {
     var bitAtString;
-    if (run.runLength < 5) { // just disregard very short runs
+    if (run.runLength < 15) { // just disregard very short runs
         bitAsString = '-';
     } else if (almostEqual(run.runLength, zeroBitRunLength, 0.4)) {
         bitAsString = '0';
