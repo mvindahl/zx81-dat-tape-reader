@@ -27,15 +27,16 @@ Check out the project from github
 npm install
 npm start <path to wav file>
 
-On the first run, it will output a distribution of the lengths of the pulses that it found,
-and prompt you to identify the length of pulses to look for when looking for zeroes and ones
-(there will be a help text). Supply these numbers as additional CLI parameters and rerun.
-
-When supplied with athe full set of parameters, the tool will launch a UI with a text editor and a formatted
+The tool will launch a UI with a text editor and a formatted
 representation of the pulses identified. Also, it will display the original wav data for reference
 at the top. Search for "?" to find the parts of the tape where data could not be safely determined
 and fix it in the text (the format is self explanatory I hope). Use the button at the
 bottom to generate and save the ones and zeroes as a binary file.
+
+Tips: specifying offset and length for a line is optional. If length is omitted it will be inferred
+from previous pulse in the rendering. If length is omitted it will try to infer from the bit value.
+
+TBD: Document format
 
 ## Code style and architecture
 Not at this point, no. Mostly npm modules and duct tape. Indentation will probably offend.

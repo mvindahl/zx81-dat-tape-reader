@@ -8,8 +8,6 @@ const path = require('path')
 const url = require('url')
 
 var inputFile = process.argv[2];
-var zeroBitRunLength = parseInt(process.argv[3] || '0');
-var oneBitRunLength = parseInt(process.argv[4] || '0');
 
 let buffer = fs.readFileSync(inputFile);
 let result = wav.decode(buffer);
@@ -30,7 +28,7 @@ var opts = {
     sampleRate: result.sampleRate,
     // samples per frame 
     samplesPerFrame: 10,
-    threshold: 0.2
+    threshold: 0.1
 };
 var detect = goertzel(opts);
 
@@ -74,29 +72,31 @@ console.log('runLengthStats:');
 for (var i = 0; i < 150; i++) {
     console.log(i, runLengthStats[i] ? runLengthStats[i] : 0);
 }
-if (!zeroBitRunLength || !oneBitRunLength) {
-    // In earlier impls I tried to be smart about this in the code but it's not worth the hassle.
-    console.log('Please determine the zero bit run length and the one bit run length, using the run length');
-    console.log('distribution above. It will be the two more or less distict "humps", probably around 70 and 130.');
-    console.log('The rerun the command, using the run length as two additional args.')
-    process.exit();    
-}
+
+// adjust for the fact that adjacent samples register as being part of run as well, i.e. the run lengths
+// measured will be longer than the length of the pulse
+var runLengthPad = 10; // experimental value
+
+var zeroBitRunLength = Math.floor(4*samplesPerPulse) + runLengthPad;
+var oneBitRunLength = Math.floor(9*samplesPerPulse) + runLengthPad;
+var silenceRunLength = Math.floor(result.sampleRate * 1300/1000000) - runLengthPad; // 1300 microSecs
 
 console.log('zero bit run length', zeroBitRunLength);
 console.log('one bit run length', oneBitRunLength);
+console.log('silence periods', silenceRunLength);
 
 var runLengthsForEdit = runs.map(function(run) {
     var bitAtString;
     if (run.runLength < 5) { // just disregard very short runs
         bitAsString = '-';
-    } else if (almostEqual(run.runLength, zeroBitRunLength, 0.3)) {
+    } else if (almostEqual(run.runLength, zeroBitRunLength, 0.4)) {
         bitAsString = '0';
-    } else if (almostEqual(run.runLength, oneBitRunLength, 0.3)) {
+    } else if (almostEqual(run.runLength, oneBitRunLength, 0.4)) {
         bitAsString = '1';
     } else {
         bitAsString = '?';
     }
-    return bitAsString + ' # ' + run.index + ':' + run.runLength;
+    return bitAsString + '\t' + run.index + ':' + run.runLength;
 }).join('\n');
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -115,12 +115,17 @@ function createWindow () {
   }))
 
   // Open the DevTools.
-//  win.webContents.openDevTools()
+ // win.webContents.openDevTools()
 
     win.webContents.on('did-finish-load', () => {
-        win.webContents.send('samples', samples);
-        win.webContents.send('runLengthsForEdit', runLengthsForEdit);
-        win.webContents.send('fileName', inputFile);
+        win.webContents.send('config', {
+            samples: samples,
+            fileName: inputFile,
+            zeroBitRunLength: zeroBitRunLength,
+            oneBitRunLength: oneBitRunLength,
+            runLengthsForEdit: runLengthsForEdit,
+            silenceRunLength: silenceRunLength
+        });
     })
 
   // Emitted when the window is closed.

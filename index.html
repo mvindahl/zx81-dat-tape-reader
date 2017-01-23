@@ -53,23 +53,22 @@
 
     var samples;
     var samplesLength;
+    var zeroBitRunLength;
+    var oneBitRunLength;
+    var silenceRunLength; // expected # samples btw runs
     var fileName;
 
-    renderer.on('fileName', (event, _fileName) => {
-      fileName = _fileName;
-      document.title = fileName;
-    })
+    renderer.on('config', (event, config) => {
+        samples = config.samples;
+        zeroBitRunLength = config.zeroBitRunLength;
+        oneBitRunLength = config.oneBitRunLength;
+        silenceRunLength = config.silenceRunLength;
+        fileName = config.fileName;
 
-    renderer.on('samples', (event, _samples) => {
-      samples = _samples;
-      samplesLength = Object.keys(samples).length;
-      repaintCanvas();
-    })
+        samplesLength = Object.keys(samples).length;
+        document.title = fileName;
 
-    renderer.on('runLengthsForEdit', (event, runLengthsForEdit) => {
-
-        editor.setValue(runLengthsForEdit, -1);
-        repaintCanvas();
+        editor.setValue(config.runLengthsForEdit, -1);
 
         editor.getSession().on('change', function(e) {
             repaintCanvas();
@@ -83,10 +82,11 @@
             repaintCanvas();
         });
 
+        repaintCanvas();
     })
 
     var canvasOffset = 0;
-    var editorLineRegex = /^(.) # (\d*):(\d*)$/;
+    var editorLineRegex = /^(.)\s*(\d*)?(?::(\d*))?$/;
     var canvasWidth;
 
     function repaintCanvas() {
@@ -97,12 +97,12 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         //var editorLines = editor.getValue().split('\n');
+
         var cursorRow = editor.getSelection().getCursor().row;
-        var currentLineMatch = editorLineRegex.exec(editor.session.getLine(cursorRow));
-        if (currentLineMatch) {
-            var currentLineOffset = parseInt(currentLineMatch[2]);
-            var currentLineLength = parseInt(currentLineMatch[3]);
-            canvasOffset = Math.floor(currentLineOffset + currentLineLength/2 - canvasWidth/2);
+        var currentLineRunData = getRunData(cursorRow);
+
+        if (currentLineRunData) {
+            canvasOffset = Math.floor(currentLineRunData.offset + currentLineRunData.length/2 - canvasWidth/2);
             canvasOffset = Math.max(canvasOffset, 0);
             if (samples) {
                 canvasOffset = Math.min(canvasOffset, samplesLength - canvasWidth);
@@ -110,11 +110,9 @@
         }
 
         // draw runs
-
-
         var row = cursorRow;
         while (row >= 0) {
-            var inBounds = paintRun(ctx, editor.session.getLine(row), row === cursorRow)
+            var inBounds = paintRun(ctx, getRunData(row), row === cursorRow)
             if (!inBounds) {
                 break;
             }
@@ -122,7 +120,7 @@
         }
         var row = cursorRow + 1;
         while (row < editor.session.getLength()) { // ?
-            var inBounds = paintRun(ctx, editor.session.getLine(row), row === cursorRow)
+            var inBounds = paintRun(ctx, getRunData(row), row === cursorRow)
             if (!inBounds) {
                 break;
             }
@@ -147,14 +145,45 @@
         ctx.fillText("offset: " + canvasOffset, 4, 10);
     }
 
-    function paintRun(ctx, lineText, isCursorRow) { // returns true if painted, false if out of bounds
-        var match = editorLineRegex.exec(lineText);
-
+    function getRunData(rowNumber) {
+        var match = editorLineRegex.exec(editor.session.getLine(rowNumber));
         if (match) {
-            var bitValue = match[1]; 
-            var offset = parseInt(match[2]); 
-            var length = parseInt(match[3]);
+            var bitValue = match[1];
 
+            var offset = parseInt(match[2]);
+            if (!offset) {
+                if (rowNumber === 0) {
+                    offset = 0;
+                } else {
+                    // recurse (potentially highly inefficient impl but OK for now)
+                    var prevRowRunData = getRunData(rowNumber - 1);
+                    // place at expected position based upon previous neighbor
+                    offset = prevRowRunData.offset + prevRowRunData.length + silenceRunLength;
+                }
+            }
+
+            var length;
+            if (match[3] && match[3] !== '') {
+                length = parseInt(match[3]);
+            } else if (bitValue === '0') {
+                length = zeroBitRunLength;
+            } else if (bitValue === '1') {
+                length = oneBitRunLength;
+            } else {
+                length = 0;
+            }
+
+            return {
+                bitValue: bitValue,
+                offset: offset,
+                length: length
+            }
+        }
+
+    }
+
+    function paintRun(ctx, runData, isCursorRow) { // returns true if painted, false if out of bounds
+        if (runData) {
             if (isCursorRow) {
                 ctx.fillStyle = "blue"; 
             } else {
@@ -162,21 +191,21 @@
             }
 
             // if we are off the drawing bounds, then return false
-            if (offset - canvasOffset + length < 0) {
-                //console.log('too far left');
+            if (runData.offset - canvasOffset + runData.length < 0) {
+//                console.log('too far left');
                 return false;
             }            
-            if (offset - canvasOffset > canvasWidth) {
-                //console.log('too far right');
+            if (runData.offset - canvasOffset > canvasWidth) {
+//                console.log('too far right');
                 return false;
             }
 
-            ctx.fillRect(offset - canvasOffset, 100, length, 20);
+            ctx.fillRect(runData.offset - canvasOffset, 100, runData.length, 20);
 
             ctx.font="20px Georgia";
             ctx.fillStyle = "black"; 
 
-            ctx.fillText(bitValue, Math.floor(offset - canvasOffset + length/2) - 5, 136);
+            ctx.fillText(runData.bitValue, Math.floor(runData.offset - canvasOffset + runData.length/2) - 5, 136);
 
         }
         return true;
