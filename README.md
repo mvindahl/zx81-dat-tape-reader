@@ -14,7 +14,7 @@ Over the decades, the higher frequencies have diappeared from the tape, turning 
 sinusiodal waves. What's worse, the signal has also been reduced and has drifted.
 TBD: Horror gallery
 
-Existing tools were based upon counting peaks.
+Existing tools were based upon counting peaks and had a hard time dealing with the decayed tapes.
 
 ## This project
 Started off as an experiment and still is, I guess. The idea is to use an off-the-shelf algorithm to detect
@@ -31,20 +31,16 @@ The tool will launch a UI with a text editor and a formatted
 representation of the pulses identified. Also, it will display the original wav data for reference
 at the top. Search for "?" to find the parts of the tape where data could not be safely determined
 and fix it in the text (the format is self explanatory I hope). Use the button at the
-bottom to generate and save the ones and zeroes as a binary file.
+bottom to generate and save the ones and zeroes as a tzx file.
 
-Tips: specifying offset and length for a line is optional. If length is omitted it will be inferred
+Tip: specifying offset and length for a line is optional. If length is omitted it will be inferred
 from previous pulse in the rendering. If length is omitted it will try to infer from the bit value.
 
-TBD: Document format
+TBD: Document usage in wiki, link from here
 
 ## Code style and architecture
-Not at this point, no. Mostly npm modules and duct tape. Indentation will probably offend.
-
-## To be done
-- support saving in tzx format
-- clean up the code for readability
+Not at this point, no. Mostly npm modules and duct tape. Indentation will probably offend most people.
 
 ## Previous art
 http://www.zx81stuff.org.uk/zx81/tapeutils/overview.html
-There are probably other tools as well, dating back to the 1990s.
+TBD: There are probably other tools as well, dating back to the 1990s, would be nice to list them here.

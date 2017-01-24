@@ -2,3 +2,4 @@ node_modules/
 *.wav
 *.raw
 *.tzx
+*.hex
