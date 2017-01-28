@@ -142,8 +142,9 @@ function repaintCanvas() {
 
     //var editorLines = editor.getValue().split('\n');
 
+    var runDataCache = {};
     var cursorRow = editor.getSelection().getCursor().row;
-    var currentLineRunData = getRunData(cursorRow);
+    var currentLineRunData = getRunData(cursorRow, runDataCache);
 
     if (currentLineRunData) {
         canvasOffset = Math.floor(currentLineRunData.offset + currentLineRunData.length / 2 - canvasWidth / 2);
@@ -156,21 +157,20 @@ function repaintCanvas() {
     // draw runs
     var row = cursorRow;
     while (row >= 0) {
-        var inBounds = paintRun(ctx, getRunData(row), row === cursorRow)
+        var inBounds = paintRun(ctx, getRunData(row, runDataCache), row === cursorRow)
         if (!inBounds) {
             break;
         }
         row--;
     }
     var row = cursorRow + 1;
-    while (row < editor.session.getLength()) { // ?
-        var inBounds = paintRun(ctx, getRunData(row), row === cursorRow)
+    while (row < editor.session.getLength()) {
+        var inBounds = paintRun(ctx, getRunData(row, runDataCache), row === cursorRow)
         if (!inBounds) {
             break;
         }
         row++;
     }
-
 
     // draw wave samples
 
@@ -189,7 +189,11 @@ function repaintCanvas() {
     ctx.fillText("offset: " + canvasOffset, 4, 10);
 }
 
-function getRunData(rowNumber) {
+function getRunData(rowNumber, runDataCache) {
+    if (runDataCache[rowNumber]) { // cache guards against O(n^2) for some corner cases
+        return runDataCache[rowNumber];
+    }
+
     var match = editorLineRegex.exec(editor.session.getLine(rowNumber));
     if (match) {
         var bitValue = match[1];
@@ -199,8 +203,8 @@ function getRunData(rowNumber) {
             if (rowNumber === 0) {
                 offset = 0;
             } else {
-                // recurse (potentially highly inefficient impl but OK for now)
-                var prevRowRunData = getRunData(rowNumber - 1);
+                // recurse
+                var prevRowRunData = getRunData(rowNumber - 1, runDataCache);
                 // place at expected position based upon previous neighbor
                 offset = prevRowRunData.offset + prevRowRunData.length + silenceRunLength;
             }
@@ -217,11 +221,15 @@ function getRunData(rowNumber) {
             length = 0;
         }
 
-        return {
+        var result = {
             bitValue: bitValue,
             offset: offset,
             length: length
         }
+
+        runDataCache[rowNumber] = result;
+
+        return result;
     }
 
 }
