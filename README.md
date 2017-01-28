@@ -20,7 +20,7 @@ by the algorithm. The "save" button below the editor exports the data as a
 valid .tzx file.
 
 Although the algorithm does a fairly decent job, at least on our sample tape
-images, you will want to do a manual sweep before saving. A good atarting pint is to go to the 
+images, you will want to do a manual sweep before saving. A good starting point is to go to the 
 text edtor and search for '?' to find bursts that it had a hard time
 categorizing.
 
@@ -39,27 +39,32 @@ ZX80/ZX81 Cassette Signals".
 The tool scans the waveform for bursts of 3.2Mhz activity. Then, based upon the lengths
 of these, it does its best to determine if the format represents a zero or a one. 
 
-It usually does a fairly good job for tapes in good quality:
+It usually does a solid job for tapes of good quality:
 ![good signal](README/zx81_good_quality.png)
 
-.. also, for tapes where the signal has drifted and decayed:
+.. also, works well for tapes where the signal has drifted and decayed:
 ![poor signal](README/zx81_poor_quality.png)
 
-.. but yeah, it does have limits:
+.. but it does have its limits:
 ![broken signal](README/zx81_broken_quality.png)
 
+The latter case illustrates why you'd want to look through its results.
 
 ## Why was it created?
 It all started at a local tech meetup.
 
 A pal of mine, the much esteemed [@atjens](https://twitter.com/atjens) had brought a small bounty of
 ZX81 tapes which he was scanning for a digital archeology project
-that he was maintaining. The existing tools for extracting the content would rely
-upon counting peaks, and they had a tough time with some of the poorer tapes. As he lamented
+that he was maintaining. The existing tools for extracting the content were from the 1990s and would rely
+upon counting peaks. They had a tough time with some of the poorer tapes. As he lamented
 about this, I said that it would probably not be too hard to do a 
 frequency based algorithm which would work better.
 
-So here we are, about one week later. It's not shiny but it's usable for its purpose.
+So here we are, about one week later, created in small slots of spare time. It's not shiny but I believa that it's usable for its purpose.
+
+## Why a text editor?
+It was the cheapest way to implement a full editing experience. Also, I'd assume
+that people who dabble with old ZX81 tapes won't mind it.
 
 ## Further reading
 http://problemkaputt.de/zxdocs.txt
