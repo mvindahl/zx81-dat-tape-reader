@@ -1,46 +1,68 @@
-# Scan wav images of old tapes to detect binary data
-Utility project for helping in the retrieval of old data tapes in ZX81 format. Takes input file in
-.wav format. Saves file of binary data. Designed to be resistant towards the tapes having decayed over time.
+> Read wav files of old ZX81 tapes and save in .tzx format
 
-For now it's work in progress. No guarantees given.
+## Usage
+Make sure that [Node.js](https://nodejs.org/en/) is installed
 
-## The format in brief
-Bits were stored as 3.2 kHz pulses of (ideally) square waves. A zero would be encoded as four consecutive pulses,
-a one would be encoded as nine pulses. Pulses were separated by periods of no signal.
-TBD: Reference
+Check out the project from github and open the project in a terminal; then type:
 
-## The problem
-Over the decades, the higher frequencies have diappeared from the tape, turning the square waves into
-sinusiodal waves. What's worse, the signal has also been reduced and has drifted.
-TBD: Horror gallery
+`npm install`
 
-Existing tools were based upon counting peaks and had a hard time dealing with the decayed tapes.
+`npm start <path to wav file>`
 
-## This project
-Started off as an experiment and still is, I guess. The idea is to use an off-the-shelf algorithm to detect
-the 3.2 KHz pulses to see if that would work better with the recordings.
+This will load the wav file, scan for content, and open an editor window.
 
-The implementation is based upon node.js, electron.js and some nifty libraries that I found along the way.
+![editor window](README/editor_window.png)
 
-## How to run
-Check out the project from github
-npm install
-npm start <path to wav file>
+The top of the window visualizes the waveform and the frequency bursts extracted
+from the waveform, along with the interpretation as either binary zero or binary
+one. The editor allows you to edit data and correct any errors made
+by the algorithm. The "save" button below the editor exports the data as a
+valid .tzx file.
 
-The tool will launch a UI with a text editor and a formatted
-representation of the pulses identified. Also, it will display the original wav data for reference
-at the top. Search for "?" to find the parts of the tape where data could not be safely determined
-and fix it in the text (the format is self explanatory I hope). Use the button at the
-bottom to generate and save the ones and zeroes as a tzx file.
+Although the algorithm does a fairly decent job, at least on our sample tape
+images, you will want to do a manual sweep before saving. A good atarting pint is to go to the 
+text edtor and search for '?' to find bursts that it had a hard time
+categorizing.
 
-Tip: specifying offset and length for a line is optional. If length is omitted it will be inferred
-from previous pulse in the rendering. If length is omitted it will try to infer from the bit value.
+The text format in the editor is documented [on a wiki page](https://github.com/mvindahl/zx81-dat-tape-reader/wiki/Editor-format).
+The basics should be obvious from the initial contents of the editor. A useful thing to know is that
+offset and length are optional; if omitted, the renderer will do its best to place the burst
+correctly based upon the context.
 
-TBD: Document usage in wiki, link from here
+The current version does not support load/save of the editor contents but
+you can always copy/paste it to somewhere else.
 
-## Code style and architecture
-Not at this point, no. Mostly npm modules and duct tape. Indentation will probably offend most people.
+## How does the algorithm work?
+For the specification of the ZX81 tape format, please refer to [this nice writeup](http://problemkaputt.de/zxdocs.txt). Search the text for "
+ZX80/ZX81 Cassette Signals".
 
-## Previous art
+The tool scans the waveform for bursts of 3.2Mhz activity. Then, based upon the lengths
+of these, it does its best to determine if the format represents a zero or a one. 
+
+It usually does a fairly good job for tapes in good quality:
+![good signal](README/zx81_good_quality.png)
+
+.. also, for tapes where the signal has drifted and decayed:
+![poor signal](README/zx81_poor_quality.png)
+
+.. but yeah, it does have limits:
+![broken signal](README/zx81_broken_quality.png)
+
+
+## Why was it created?
+It all started at a local tech meetup.
+
+A pal of mine, the much esteemed [@atjens](https://twitter.com/atjens) had brought a small bounty of
+ZX81 tapes which he was scanning for a digital archeology project
+that he was maintaining. The existing tools for extracting the content would rely
+upon counting peaks, and they had a tough time with some of the poorer tapes. As he lamented
+about this, I said that it would probably not be too hard to do a 
+frequency based algorithm which would work better.
+
+So here we are, about one week later. It's not shiny but it's usable for its purpose.
+
+## Further reading
+http://problemkaputt.de/zxdocs.txt
+http://www.worldofspectrum.org/TZXformat.html
+http://www.worldofspectrum.org/tapsamp.html
 http://www.zx81stuff.org.uk/zx81/tapeutils/overview.html
-TBD: There are probably other tools as well, dating back to the 1990s, would be nice to list them here.
