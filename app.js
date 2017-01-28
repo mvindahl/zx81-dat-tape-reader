@@ -5,8 +5,7 @@ var wav = require('node-wav');
 var _ = require('lodash');
 var goertzel = require('goertzel')
 var almostEqual = require('almost-equal')
-
-console.log(process.argv);
+var tzx = require('./tzx');
 
 window.editor = ace.edit("editor");
 editor.setTheme("ace/theme/monokai");
@@ -286,71 +285,7 @@ function exportData() {
         bitString = bitString.slice(8);
     }
 
-    // Attach TZX header.
-    // Ref: http://www.worldofspectrum.org/TZXformat.html
-
-    function ascii(str) {
-        var arr = [];
-
-        for (var idx in str) {
-            arr.push(str.charCodeAt(idx));
-        }
-
-        return arr;
-    }
-
-    function word(value) {
-        var arr = [];
-
-        var lobyte = value % 0x100;
-        arr.push(lobyte);
-        arr.push((value - lobyte) / 0x100);
-
-        return arr;
-    }
-
-    function dword(value) {
-        var arr = [];
-
-        for (var b = 0; b < 4; b++) {
-            var lobyte = value % 0x100;
-            arr.push(lobyte);
-            value = ((value - lobyte) / 0x100);
-        }
-
-        return arr;
-    }
-
-    var headerBlock = [ascii('ZXTape!'), 0x1a, 1, 20];
-
-    var text = ascii('github.com/mvindahl/zx81-dat-tape-reader');
-    var textBlock = [0x30, text.length, text]
-
-    var dataBlockContents = _.flatten([ // NOTE: The header is identical to files produced by similar tools
-        word(0),            // Pause after this block (ms)
-        dword(0),           // Total number of symbols in pilot/sync block (can be 0)
-        0,                  // Maximum number of pulses per pilot/sync symbol NPP
-        0,                  // Number of pilot/sync symbols in the alphabet table (0=256)
-        dword(8 * rawData.length), // Total number of symbols in data stream (can be 0)
-        0x12,               // Maximum number of pulses per data symbol NPD
-        2,                  // Number of data symbols in the alphabet table (0=256) ASD
-        3,                  // description of zero bit pulse:
-        word(0x0212), word(0x0208), word(0x0212), word(0x0208),
-        word(0x0212), word(0x0208), word(0x0212), word(0x1251),
-        word(0x0000), word(0x0000), word(0x0000), word(0x0000),
-        word(0x0000), word(0x0000), word(0x0000), word(0x0000),
-        word(0x0000), word(0x0000),
-        3,                  // description of one bit pulse:
-        word(0x0212), word(0x0208), word(0x0212), word(0x0208),
-        word(0x0212), word(0x0208), word(0x0212), word(0x0208),
-        word(0x0212), word(0x0208), word(0x0212), word(0x0208),
-        word(0x0212), word(0x0208), word(0x0212), word(0x0208),
-        word(0x0212), word(0x1251),
-        rawData
-    ]);
-    var dataBlock = [0x19, dword(dataBlockContents.length), dataBlockContents];
-
-    var tzxEncodedBytes = _.flattenDeep([headerBlock, textBlock, dataBlock]);
+    var tzxEncodedBytes = tzx.encode(rawData);
 
     var byteArray = new Uint8Array(tzxEncodedBytes);
     var blob = new Blob([byteArray], { type: "application/octet-stream" });
