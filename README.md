@@ -60,7 +60,7 @@ upon counting peaks. They had a tough time with some of the poorer tapes. As he 
 about this, I said that it would probably not be too hard to do a 
 frequency based algorithm which would work better.
 
-So here we are, about one week later, created in small slots of spare time. It's not shiny but I believa that it's usable for its purpose.
+So here we are, about one week later, created in small slots of spare time. It's not shiny but I believe that it's usable for its purpose.
 
 ## Why a text editor?
 It was the cheapest way to implement a full editing experience. Also, I'd assume
