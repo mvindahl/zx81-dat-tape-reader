@@ -130,7 +130,6 @@ renderer.on('inputFile', (event, inputFile) => {
 });
 
 var canvasOffset = 0;
-var editorLineRegex = /^(.)\s*(\d*)?(?::(\d*))?$/;
 var canvasWidth;
 
 function repaintCanvas() {
@@ -189,12 +188,20 @@ function repaintCanvas() {
     ctx.fillText("offset: " + canvasOffset, 4, 10);
 }
 
+function parseLine(str) {
+    str = str.split('#')[0];
+    var editorLineRegex = /^(.)\s*(\d*)?(?::(\d*))?$/;
+    return editorLineRegex.exec(str);
+}
+
+
 function getRunData(rowNumber, runDataCache) {
     if (runDataCache[rowNumber]) { // cache guards against O(n^2) for some corner cases
         return runDataCache[rowNumber];
     }
 
-    var match = editorLineRegex.exec(editor.session.getLine(rowNumber));
+    var match = parseLine(editor.session.getLine(rowNumber));
+    var result;
     if (match) {
         var bitValue = match[1];
 
@@ -203,10 +210,18 @@ function getRunData(rowNumber, runDataCache) {
             if (rowNumber === 0) {
                 offset = 0;
             } else {
-                // recurse
-                var prevRowRunData = getRunData(rowNumber - 1, runDataCache);
                 // place at expected position based upon previous neighbor
-                offset = prevRowRunData.offset + prevRowRunData.length + silenceRunLength;
+                var prevRowRunData;
+                var searchBackIdx = rowNumber - 1;
+                while (searchBackIdx >= 0 && !prevRowRunData) {
+                    prevRowRunData = getRunData(searchBackIdx--, runDataCache); // recurse
+                }
+
+                if (prevRowRunData) {
+                    offset = prevRowRunData.offset + prevRowRunData.length + silenceRunLength;
+                } else {
+                    offset = 0;
+                }
             }
         }
 
@@ -226,12 +241,9 @@ function getRunData(rowNumber, runDataCache) {
             offset: offset,
             length: length
         }
-
         runDataCache[rowNumber] = result;
-
         return result;
     }
-
 }
 
 function paintRun(ctx, runData, isCursorRow) { // returns true if painted, false if out of bounds
@@ -270,7 +282,7 @@ function exportData() {
     var bits = [];
     for (idx = 0; idx < editorLines.length; idx++) {
         var editorLine = editorLines[idx];
-        var match = editorLineRegex.exec(editorLine);
+        var match = parseLine(editorLine);
         if (match) {
             var bitValue = match[1];
             if (bitValue === '0' || bitValue === '1') {
