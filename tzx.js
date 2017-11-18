@@ -72,6 +72,7 @@ function encode(rawData) {
 
     var tzxEncodedBytes = _.flattenDeep([headerBlock, textBlock, dataBlock]);
 
+    return tzxEncodedBytes;
 }
 
 module.exports = {
