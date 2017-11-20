@@ -186,6 +186,16 @@ function repaintCanvas() {
     ctx.fillRect(0, 0, 80, 12);
     ctx.fillStyle = "white";
     ctx.fillText("offset: " + canvasOffset, 4, 10);
+
+    // update bytelen/bitlen stats
+    var bitlen = getBits().length;
+
+    var bytelen = Math.floor(bitlen / 8);
+    var remainingBitlen = bitlen % 8;
+
+    document.getElementById("ByteLen").innerHTML = bytelen + ' byte' + (bytelen !== 1 ? 's' : '');
+    document.getElementById("BitLen").style.visibility = (remainingBitlen === 0 ? 'hidden' : 'visible');
+    document.getElementById("BitLen").innerHTML = ' and ' + remainingBitlen + ' bit' + (remainingBitlen !== 1 ? 's': '');
 }
 
 function parseLine(str) {
@@ -276,9 +286,9 @@ function paintRun(ctx, runData, isCursorRow) { // returns true if painted, false
 
 }
 
-function exportData() {
+function getBits() {
     var editorLines = editor.getValue().split('\n');
-
+    
     var bits = [];
     for (idx = 0; idx < editorLines.length; idx++) {
         var editorLine = editorLines[idx];
@@ -290,6 +300,12 @@ function exportData() {
             }
         }
     }
+
+    return bits;        
+}
+
+function exportData() {
+    var bits = getBits();
     var bitString = bits.join('');
     var rawData = [];
     while (bitString.length > 0) {

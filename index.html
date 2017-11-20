@@ -25,6 +25,23 @@
             left: 0;
         }
 
+        #LengthStats { 
+            position: absolute;
+            bottom: 0px;
+            height: 20px;
+            left: 0;
+            color: #888
+        }
+
+        #ByteLen {
+            color: #444            
+        }
+
+        #BitLen {
+            color: #444;
+            visibility: hidden;
+        }
+
         #ExportData { 
             position: absolute;
             bottom: 0px;
@@ -38,6 +55,7 @@
     <div id="Container">
         <canvas id="Canvas" height="140"></canvas>
         <div id="editor"></div>
+        <div id="LengthStats">Data length: <span id="ByteLen"></span><span id="BitLen"></span></div>
         <button type="button" id="ExportData" onclick="exportData()">Save as .tzx</button>
     </div>
   </body>
