@@ -52,7 +52,7 @@ Once the .wav file has been analyzed, an editor window is opened.
 
 The top of the window visualizes the waveform from the .wav file. This is provided as a reference when reviewing.
 
-Below the waveform, on the same axis, the detected frequency bursts are rendered. Also, an interpretation is rendered. Roughly speaking, any burst roughly matching the length of a zero or a one is interpreted as such. Any very short bursts are assumed to be noise and are marked as a dash, meaning "ignore this". All other bursts are maked as a question mark, meaning that they need to be manually reviewed.
+Below the waveform, on the same axis, the detected frequency bursts are rendered. Also, an interpretation is rendered. Roughly speaking, any burst approximating matching the length of a zero or a one is interpreted as such. Any very short bursts are assumed to be noise and are marked as a dash, meaning "ignore this". All other bursts are maked as a question mark, meaning that they need to be manually reviewed.
 
 The major part of the window is a text editor presenting the analysis in a textual form. This is the "source code" of the frequency bursts rendered above it, and editing the text will immediately rerender the visual representation. When placing the cursor on a line, the corresponding frequency burst will be rendered as blue.
 
@@ -89,9 +89,9 @@ There, fixed it in the editor. Again, the inferred offsets and run lengths turns
 
 ### Step 3: Saving to .tzx
 
-Once you are satisfied, you can save the .tzx file for testing in an emulator. A good check to perform at this point is to check the byte length listed in the lower left corner of the window. Anything but an integer number of bytes is probably a bad sign.
+Once you are satisfied, you can save the .tzx file for testing in an emulator. A good check to perform at this point is the byte length listed in the lower left corner of the window. Anything but an integer number of bytes is probably a bad omen.
 
-To save, press the "Save as TZX" button located in the lower right corner of the window. This will open a save dialog.
+To save, press the "Save as TZX" button located in the lower right corner. This will open a save dialog.
 
 ## Further reading and previous art
 - http://problemkaputt.de/zxdocs.txt
