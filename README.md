@@ -29,16 +29,14 @@ Open the project in a terminal, then type:
 This will fetch required dependencies.
 
 ## Usage
+The input for the tool is a .wav file representing the signal on the tape.
+
 The basic workflow is as follows:
-1. Digitize tape signal to .wav file
-2. Open the wav file and let the tool analyze it for ones and zeroes
-3. Review the analysis and edit if required
-4. Output in .tzx format for the emulator
-5. Run in emulator to verify
+1. Open the wav file and let the tool analyze it for ones and zeroes
+2. Review the analysis and edit if required
+3. Output in .tzx format for the emulator
 
-Only steps two through four will be in scope for this README.
-
-### Open wav file in tool
+### Step 1: Open wav file in tool
 
 In the terminal, type:
 
@@ -46,7 +44,7 @@ In the terminal, type:
 
 This will load the wav file, scan for content, and open an editor window. Expect the analysis to take a few seconds.
 
-### Review and edit analysis
+### Step 2: Review and edit analysis
 
 Once the .wav file has been analyzed, an editor window is opened.
 
@@ -62,12 +60,12 @@ The working assumption is that you will only need to edit small parts of the tex
 
 The text format in the editor is documented [on a wiki page](https://github.com/mvindahl/zx81-dat-tape-reader/wiki/Editor-format). Some usage examples will follow.
 
-#### A fully readable tape
+#### Example A: A fully readable tape
 Sometimes the tape is nice and readable. In this example, seaching for '?' yields nothing, so we can go right ahead and save the .tzx file.
 
 ![fully readable tape](README/readable_tape.png)
 
-#### Broken bits
+#### Example B: Fixing broken bits
 In this example, the signal was degraded for a short duration and the analysis interpreted it as noise.
 
 ![broken bits](README/broken_bits.png)
@@ -78,7 +76,7 @@ From a quick visual inspection, it's clear that they should be maked as zeros. I
 
 One thing to note here is that while most lines in the text editor do encode an offset and a run length, these can be omitted, in which case they are inferred in the visual representation. This is very useful when fixing stuff.
 
-#### Broken sequence
+#### Example C: Fixing a broken sequence
 A similar example of tape degradation, this time making a number of bits almost unreadable.
 
 ![broken sequence](README/broken_sequence.png)
@@ -89,9 +87,11 @@ Looking at the ripples, it's easy for a human to spot that the algorithm got the
 
 There, fixed it in the editor. Again, the inferred offsets and run lengths turns out to be a useful feature.
 
-### Saving to .tzx
+### Step 3: Saving to .tzx
 
-In the lower right corner, there is a "save" which exports the data as a valid .tzx file. As one might expect, it will open a dialog for specifying where to save the output file.
+Once you are satisfied, you can save the .tzx file for testing in an emulator. A good check to perform at this point is to check the byte length listed in the lower left corner of the window. Anything but an integer number of bytes is probably a bad sign.
+
+To save, press the "Save as TZX" button located in the lower right corner of the window. This will open a save dialog.
 
 ## Further reading and previous art
 - http://problemkaputt.de/zxdocs.txt
