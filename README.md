@@ -94,7 +94,7 @@ There, fixed it in the editor. Again, the inferred offsets and run lengths turns
 In the lower right corner, there is a "save" which exports the data as a valid .tzx file. As one might expect, it will open a dialog for specifying where to save the output file.
 
 ## Further reading and previous art
-http://problemkaputt.de/zxdocs.txt
-http://www.worldofspectrum.org/TZXformat.html
-http://www.worldofspectrum.org/tapsamp.html
-http://www.zx81stuff.org.uk/zx81/tapeutils/overview.html
+- http://problemkaputt.de/zxdocs.txt
+- http://www.worldofspectrum.org/TZXformat.html
+- http://www.worldofspectrum.org/tapsamp.html
+- http://www.zx81stuff.org.uk/zx81/tapeutils/overview.html
