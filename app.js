@@ -114,7 +114,7 @@ renderer.on('inputFile', (event, inputFile) => {
     while (idx > firstBitIdx) {
         var pauseBeforeRun = runs[idx].index - (runs[idx - 1].index + runs[idx - 1].runLength);
         if (pauseBeforeRun > 2*silenceRunLength) {
-            linesForEdit.splice(idx, 0, '# suspicious loss of signal?')
+            linesForEdit[idx - 1] = linesForEdit[idx - 1] + ' # suspicious loss of signal?'
         }
         idx--;
     }
@@ -210,7 +210,7 @@ function repaintCanvas() {
 
 function parseLine(str) {
     str = str.split('#')[0];
-    var editorLineRegex = /^(.)\s*(\d*)?(?::(\d*))?$/;
+    var editorLineRegex = /^(.)\s*(\d*)?(?::(\d*))?\s*$/;
     return editorLineRegex.exec(str);
 }
 
