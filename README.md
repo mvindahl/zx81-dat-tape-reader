@@ -81,6 +81,8 @@ A similar example of tape degradation, this time making a number of bits almost 
 
 ![broken sequence](README/broken_sequence.png)
 
+Note the "suspicious loss of signal?" comments. These are automatically inserted when the algorithm detects an unusually long pause in the recording and will help you locate places where the signal has become too weak for automatic detection.
+
 Looking at the ripples, it's easy for a human to spot that the algorithm got the initial zero wrong and that the bit sequence should be 1-0-0-1.
 
 ![broken sequence fixed](README/broken_sequence_fixed.png)

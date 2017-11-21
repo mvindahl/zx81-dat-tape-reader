@@ -94,7 +94,7 @@ renderer.on('inputFile', (event, inputFile) => {
     console.log('one bit run length', oneBitRunLength);
     console.log('silence periods', silenceRunLength);
 
-    var runLengthsForEdit = runs.map(function (run) {
+    var linesForEdit = runs.map(function (run) {
         var bitAtString;
         if (run.runLength < 15) { // just disregard very short runs
             bitAsString = '-';
@@ -106,13 +106,23 @@ renderer.on('inputFile', (event, inputFile) => {
             bitAsString = '?';
         }
         return bitAsString + '\t' + run.index + ':' + run.runLength;
-    }).join('\n');
+    });
 
-    console.log('got run lengths');
+    // scan for dubious pauses indicating possible loss of signal
+    var firstBitIdx = _.findIndex(linesForEdit, val => val[0] == '0' || val[0] == '1')
+    var idx = _.findLastIndex(linesForEdit, val => val[0] == '0' || val[0] == '1')
+    while (idx > firstBitIdx) {
+        var pauseBeforeRun = runs[idx].index - (runs[idx - 1].index + runs[idx - 1].runLength);
+        if (pauseBeforeRun > 2*silenceRunLength) {
+            linesForEdit.splice(idx, 0, '# suspicious loss of signal?')
+        }
+        idx--;
+    }
+
 
     document.title = fileName;
 
-    editor.setValue(runLengthsForEdit, -1);
+    editor.setValue(linesForEdit.join('\n'), -1);
 
     editor.getSession().on('change', function (e) {
         repaintCanvas();
