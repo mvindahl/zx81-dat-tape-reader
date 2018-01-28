@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "almost-equal": "^1.1.0",
-    "electron": "^1.4.15",
+    "electron": "1.7.11",
     "goertzel": "^3.0.1",
     "lodash": "^4.17.4",
     "node-wav": "0.0.2",
