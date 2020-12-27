@@ -21,7 +21,7 @@ function createWindow() {
   win.loadFile("index.html");
 
   // Open the DevTools.
-  //   win.webContents.openDevTools();
+  win.webContents.openDevTools();
 
   win.webContents.on("did-finish-load", () => {
     win.webContents.send("inputFile", process.argv[2]);

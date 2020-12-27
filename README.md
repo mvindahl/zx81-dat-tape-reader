@@ -13,11 +13,22 @@ Decoding the contents of the tape represents a challenge, as the signal may have
 When I saw this at a local tech meetup, my immediate reaction was that this could be done better.
 
 ## Design Philosophy
+
 - Detecting frequencies would work better than detecting amplitudes over some threshold since amplitudes would often vary across the tape.
 - We cannot assume this to be fully automated in the general case. There will be a human validation step.
 - This is made for a niche of a niche. Leverage existing libraries and components. Resist the urge to goldplate it. Keep it simple.
 
+## How it works
+
+1. For every sample in the wav file, the surrounding slice of samples is analyzed using a Goertzel algorithm to detect 3.2Mhz frequencies
+2. Sequences of samples which detected the frequency are collected into runs
+3. Very short runs are discarded as noise. Runs matching the expected lenght of a zero pulse or a one pulse are marked as such. Anything else is marked as unknown.
+4. The result of this analysis is inserted into the editor in a textual format, allowing for a human post processing step.
+5. While editing, a visual representation is rendered for verification
+6. Once done, the file can be downloaded as tzx.
+
 ## Installation
+
 Creating installer for various platforms would probably qualify as goldplating so you need to download the code from github yourself, either using git or as a zip file.
 
 Also, you need to install [Node.js](https://nodejs.org/en/) if you haven't already.
@@ -29,9 +40,11 @@ Open the project in a terminal, then type:
 This will fetch required dependencies.
 
 ## Usage
+
 The input for the tool is a .wav file representing the signal on the tape.
 
 The basic workflow is as follows:
+
 1. Open the wav file and let the tool analyze it for ones and zeroes
 2. Review the analysis and edit if required
 3. Output in .tzx format for the emulator
@@ -61,11 +74,13 @@ The working assumption is that you will only need to edit small parts of the tex
 The text format in the editor is documented [on a wiki page](https://github.com/mvindahl/zx81-dat-tape-reader/wiki/Editor-format). Some usage examples will follow.
 
 #### Example A: A fully readable tape
+
 Sometimes the tape is nice and readable. In this example, seaching for '?' yields nothing, so we can go right ahead and save the .tzx file.
 
 ![fully readable tape](README/readable_tape.png)
 
 #### Example B: Fixing broken bits
+
 In this example, the signal was degraded for a short duration and the analysis interpreted it as noise.
 
 ![broken bits](README/broken_bits.png)
@@ -77,6 +92,7 @@ From a quick visual inspection, it's clear that they should be maked as zeros. I
 One thing to note here is that while most lines in the text editor do encode an offset and a run length, these can be omitted, in which case they are inferred in the visual representation. This is very useful when fixing stuff.
 
 #### Example C: Fixing a broken sequence
+
 A similar example of tape degradation, this time making a number of bits almost unreadable.
 
 ![broken sequence](README/broken_sequence.png)
@@ -96,6 +112,7 @@ Once you are satisfied, you can save the .tzx file for testing in an emulator. A
 To save, press the "Save as TZX" button located in the lower right corner. This will open a save dialog.
 
 ## Further reading and previous art
+
 - http://problemkaputt.de/zxdocs.txt
 - http://www.worldofspectrum.org/TZXformat.html
 - http://www.worldofspectrum.org/tapsamp.html

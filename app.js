@@ -13,65 +13,80 @@ editor.getSession().setMode("ace/mode/properties"); // I guess
 
 const { ipcRenderer } = require("electron");
 
-var samples;
-var samplesLength;
-var zeroBitRunLength;
-var oneBitRunLength;
-var silenceRunLength; // expected # samples btw runs
-var fileName;
+let samples;
+let samplesLength;
+let zeroBitRunLength;
+let oneBitRunLength;
+let silenceRunLength; // expected # samples btw runs
+let fileName;
 
 ipcRenderer.on("inputFile", (event, inputFile) => {
   console.log(inputFile);
   fileName = inputFile;
 
   let buffer = fs.readFileSync(inputFile);
-  let result = wav.decode(buffer);
-  console.log("samplerate:", result.sampleRate);
-  samples = result.channelData[0];
+  let decodedWav = wav.decode(buffer);
+  console.log("samplerate:", decodedWav.sampleRate);
+  samples = decodedWav.channelData[0];
   console.log("total # of samples:", samples.length); // Float32Array
   //samples = samples.slice(0, 1000000); // limit sample while testing
   samplesLength = samples.length;
 
   // pulse is 300 µs
-  var samplesPerPulse = (result.sampleRate * 300) / 1000000;
+  const samplesPerPulse = (decodedWav.sampleRate * 300) / 1000000;
   console.log("samples per pulse=", samplesPerPulse);
 
-  var opts = {
-    // 3.2 kHz
-    targetFrequency: 3200,
+  // configure frequency detection library
+  const targetFrequency = 3200; // 3.2 Khz
+  const samplesPerPulseRounded = 2 * Math.round(samplesPerPulse / 2);
+  const opts = {
+    targetFrequency,
     // samples per second
-    sampleRate: result.sampleRate,
+    sampleRate: decodedWav.sampleRate,
     // samples per frame
-    samplesPerFrame: 10,
-    threshold: 0.1,
+    samplesPerFrame: samplesPerPulseRounded,
+    threshold: 0.01,
   };
-  var detect = goertzel(opts);
+  const detect = goertzel(opts);
 
   console.log("detecting pulses");
 
-  var frequencies = []; // TBD runs, not frequencies
+  // for each sample, include adjacent samples and detect
+  // the pulse frequency. This creates an array of zeroes and one
+  // to indicate the location of pulses.
+
+  let detections = [];
   for (var idx = 0; idx < samples.length; idx++) {
-    if (idx < 16 || idx > samples.length - 16) {
-      frequencies.push(0);
+    if (
+      idx < samplesPerPulseRounded / 2 ||
+      idx > samples.length - samplesPerPulseRounded / 2
+    ) {
+      detections.push(0);
       continue;
     }
 
     // pick buffer around point
-    var slice = samples.slice(idx - 16, idx + 16);
+    const slice = samples.slice(
+      idx - samplesPerPulseRounded / 2,
+      idx + samplesPerPulseRounded / 2
+    );
 
-    frequencies.push(detect(slice) ? 1 : 0);
+    detections.push(detect(slice) ? 1 : 0);
   }
 
-  var runs = [];
-  var isUp = false;
-  var lastUpIdx;
-  var runLengthStats = {};
-  for (var idx = 0; idx < frequencies.length; idx++) {
-    if (!isUp && frequencies[idx] === 1) {
+  // identify all runs of contiguous ones. Each one will be registered
+  // with an index and a length.
+
+  let runs = [];
+  let isUp = false;
+  let lastUpIdx;
+  let runLengthStats = {};
+  for (let idx = 0; idx < detections.length; idx++) {
+    if (!isUp && detections[idx] === 1) {
       lastUpIdx = idx;
       isUp = true;
-    } else if (isUp && frequencies[idx] === 0) {
-      var runLength = idx - lastUpIdx;
+    } else if (isUp && detections[idx] === 0) {
+      const runLength = idx - lastUpIdx;
       runs.push({ index: lastUpIdx, runLength: runLength });
       runLengthStats[runLength] = runLengthStats[runLength]
         ? runLengthStats[runLength] + 1
@@ -80,39 +95,46 @@ ipcRenderer.on("inputFile", (event, inputFile) => {
     }
   }
   console.log("runLengthStats:");
-  for (var i = 0; i < 150; i++) {
+  for (let i = 0; i < 150; i++) {
     console.log(i, runLengthStats[i] ? runLengthStats[i] : 0);
   }
 
-  // adjust for the fact that adjacent samples register as being part of run as well, i.e. the run lengths
-  // measured will be longer than the length of the pulse
-  var runLengthPad = 15; // experimental value
+  // adjust for the fact that adjacent samples register as being part
+  // of run as well, i.e. the run lengths measured will be longer than
+  // the length of the pulse
+  const runLengthPad = 15; // experimental value
 
-  zeroBitRunLength = Math.floor(4 * samplesPerPulse) + runLengthPad;
-  oneBitRunLength = Math.floor(9 * samplesPerPulse) + runLengthPad;
-  silenceRunLength =
-    Math.floor((result.sampleRate * 1300) / 1000000) - runLengthPad; // 1300 microSecs
+  const zeroBitRunLength = Math.floor(4 * samplesPerPulse) + runLengthPad;
+  const oneBitRunLength = Math.floor(9 * samplesPerPulse) + runLengthPad;
+  const silenceRunLength =
+    Math.floor((decodedWav.sampleRate * 1300) / 1000000) - runLengthPad; // 1300 microSecs
 
   console.log("zero bit run length", zeroBitRunLength);
   console.log("one bit run length", oneBitRunLength);
   console.log("silence periods", silenceRunLength);
 
-  var linesForEdit = runs.map(function (run) {
+  // map run lengths to guesses about whether its a zero pulse,
+  // a one pulse, or just noise. This outpus the lines that go
+  // into the editor
+
+  const linesForEdit = runs.map((run) => {
     var bitAtString;
     if (run.runLength < 15) {
-      // just disregard very short runs
+      // disregard very short runs as noise
       bitAsString = "-";
     } else if (almostEqual(run.runLength, zeroBitRunLength, 0.4)) {
       bitAsString = "0";
     } else if (almostEqual(run.runLength, oneBitRunLength, 0.4)) {
       bitAsString = "1";
     } else {
+      // mark for human processing
       bitAsString = "?";
     }
     return bitAsString + "\t" + run.index + ":" + run.runLength;
   });
 
   // scan for dubious pauses indicating possible loss of signal
+
   var firstBitIdx = _.findIndex(
     linesForEdit,
     (val) => val[0] == "0" || val[0] == "1"
@@ -150,21 +172,22 @@ ipcRenderer.on("inputFile", (event, inputFile) => {
   repaintCanvas();
 });
 
-var canvasOffset = 0;
-var canvasWidth;
+let canvasOffset = 0;
+let canvasWidth;
+
+// the canvas paints the original waveform and a representation
+// of the runs in the editor
 
 function repaintCanvas() {
-  var canvas = document.getElementById("Canvas");
+  const canvas = document.getElementById("Canvas");
   canvasWidth = window.innerWidth;
   canvas.width = canvasWidth;
-  var ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  //var editorLines = editor.getValue().split('\n');
-
-  var runDataCache = {};
-  var cursorRow = editor.getSelection().getCursor().row;
-  var currentLineRunData = getRunData(cursorRow, runDataCache);
+  let runDataCache = {};
+  const cursorRow = editor.getSelection().getCursor().row;
+  const currentLineRunData = getRunData(cursorRow, runDataCache);
 
   if (currentLineRunData) {
     canvasOffset = Math.floor(
@@ -179,19 +202,21 @@ function repaintCanvas() {
   }
 
   // draw runs
-  var row = cursorRow;
+  let row = cursorRow;
   while (row >= 0) {
-    var inBounds = paintRun(
+    const inBounds = paintRun(
       ctx,
       getRunData(row, runDataCache),
       row === cursorRow
     );
     if (!inBounds) {
+      // any rows below will also be outside the visible area
       break;
     }
     row--;
   }
-  var row = cursorRow + 1;
+
+  row = cursorRow + 1;
   while (row < editor.session.getLength()) {
     var inBounds = paintRun(
       ctx,
@@ -207,7 +232,7 @@ function repaintCanvas() {
   // draw wave samples
 
   if (samples) {
-    for (var idx = 0; idx < canvasWidth; idx++) {
+    for (let idx = 0; idx < canvasWidth; idx++) {
       ctx.moveTo(idx, 50);
       ctx.lineTo(idx, 50 - 50 * samples[idx + canvasOffset]);
     }
@@ -221,10 +246,10 @@ function repaintCanvas() {
   ctx.fillText("offset: " + canvasOffset, 4, 10);
 
   // update bytelen/bitlen stats
-  var bitlen = getBits().length;
+  const bitlen = getBits().length;
 
-  var bytelen = Math.floor(bitlen / 8);
-  var remainingBitlen = bitlen % 8;
+  const bytelen = Math.floor(bitlen / 8);
+  const remainingBitlen = bitlen % 8;
 
   document.getElementById("ByteLen").innerHTML =
     bytelen + " byte" + (bytelen !== 1 ? "s" : "");
@@ -236,7 +261,7 @@ function repaintCanvas() {
 
 function parseLine(str) {
   str = str.split("#")[0];
-  var editorLineRegex = /^(.)\s*(\d*)?(?::(\d*))?\s*$/;
+  const editorLineRegex = /^(.)\s*(\d*)?(?::(\d*))?\s*$/;
   return editorLineRegex.exec(str);
 }
 
@@ -246,19 +271,18 @@ function getRunData(rowNumber, runDataCache) {
     return runDataCache[rowNumber];
   }
 
-  var match = parseLine(editor.session.getLine(rowNumber));
-  var result;
+  const match = parseLine(editor.session.getLine(rowNumber));
   if (match) {
-    var bitValue = match[1];
+    const bitValue = match[1];
 
-    var offset = parseInt(match[2]);
+    let offset = parseInt(match[2]);
     if (!offset) {
       if (rowNumber === 0) {
         offset = 0;
       } else {
         // place at expected position based upon previous neighbor
-        var prevRowRunData;
-        var searchBackIdx = rowNumber - 1;
+        let prevRowRunData;
+        let searchBackIdx = rowNumber - 1;
         while (searchBackIdx >= 0 && !prevRowRunData) {
           prevRowRunData = getRunData(searchBackIdx--, runDataCache); // recurse
         }
@@ -272,7 +296,7 @@ function getRunData(rowNumber, runDataCache) {
       }
     }
 
-    var length;
+    let length;
     if (match[3] && match[3] !== "") {
       length = parseInt(match[3]);
     } else if (bitValue === "0") {
@@ -283,7 +307,7 @@ function getRunData(rowNumber, runDataCache) {
       length = 0;
     }
 
-    var result = {
+    const result = {
       bitValue: bitValue,
       offset: offset,
       length: length,
@@ -304,11 +328,9 @@ function paintRun(ctx, runData, isCursorRow) {
 
     // if we are off the drawing bounds, then return false
     if (runData.offset - canvasOffset + runData.length < 0) {
-      //                console.log('too far left');
       return false;
     }
     if (runData.offset - canvasOffset > canvasWidth) {
-      //                console.log('too far right');
       return false;
     }
 
@@ -327,14 +349,14 @@ function paintRun(ctx, runData, isCursorRow) {
 }
 
 function getBits() {
-  var editorLines = editor.getValue().split("\n");
+  const editorLines = editor.getValue().split("\n");
 
-  var bits = [];
-  for (idx = 0; idx < editorLines.length; idx++) {
-    var editorLine = editorLines[idx];
-    var match = parseLine(editorLine);
+  let bits = [];
+  for (let idx = 0; idx < editorLines.length; idx++) {
+    const editorLine = editorLines[idx];
+    const match = parseLine(editorLine);
     if (match) {
-      var bitValue = match[1];
+      const bitValue = match[1];
       if (bitValue === "0" || bitValue === "1") {
         bits.push(bitValue);
       }
@@ -345,12 +367,12 @@ function getBits() {
 }
 
 function exportData() {
-  var bits = getBits();
-  var bitString = bits.join("");
-  var rawData = [];
+  const bits = getBits();
+  const bitString = bits.join("");
+  let rawData = [];
   while (bitString.length > 0) {
-    var bitsForByte = bitString.slice(0, 8);
-    var value = 0;
+    const bitsForByte = bitString.slice(0, 8);
+    const value = 0;
     for (var pos = 0; pos < 8; pos++) {
       value *= 2;
       if (bitsForByte.charAt(pos) === "1") {
@@ -361,10 +383,10 @@ function exportData() {
     bitString = bitString.slice(8);
   }
 
-  var tzxEncodedBytes = tzx.encode(rawData);
+  const tzxEncodedBytes = tzx.encode(rawData);
 
-  var byteArray = new Uint8Array(tzxEncodedBytes);
-  var blob = new Blob([byteArray], { type: "application/octet-stream" });
-  var outputFileName = fileName + ".tzx";
+  const byteArray = new Uint8Array(tzxEncodedBytes);
+  const blob = new Blob([byteArray], { type: "application/octet-stream" });
+  const outputFileName = fileName + ".tzx";
   saveAs(blob, outputFileName);
 }
