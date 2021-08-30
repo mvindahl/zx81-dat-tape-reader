@@ -6,7 +6,7 @@ In the early days of home computers, [cassette tape](https://en.wikipedia.org/wi
 
 Some of these tapes still exist to this day, surfacing at flea markets and attics. Also, a very small community of [data archeologists](https://en.wikipedia.org/wiki/Data_archaeology) exists which try to salvage the contents. My mate, [@atjens](https://twitter.com/atjens), happens to be among those.
 
-The individual bits of the program is encoded on the tape using [bursts of sine waves](http://www.worldofspectrum.org/tapsamp.html). Once the program has been successfully retrieved and stored in [tzx format](http://www.worldofspectrum.org/TZXformat.html), it can be run in an [emulator](http://www.zx81.nl/).
+The individual bits of the program are encoded on the tape using [bursts of sine waves](http://www.worldofspectrum.org/tapsamp.html). Once the program has been successfully retrieved and stored in [tzx format](http://www.worldofspectrum.org/TZXformat.html), it can be run in an [emulator](http://www.zx81.nl/).
 
 Decoding the contents of the tape represents a challenge, as the signal may have degraded over the decades. On the tape images used for testing, it was not uncommon for the signal to have diminished, been distorted, or almost to have been erased in places. The [existing software](http://www.zx81stuff.org.uk/zx81/tapeutils/overview.html) often used for converting from [.wav](https://en.wikipedia.org/wiki/WAV) to .tzx would have problems decoding these tapes as it detected amplitudes, not frequencies. A substantial manual preprocessing step was required to make it work for deteriorated tapes.
 
